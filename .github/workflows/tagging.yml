@@ -1,0 +1,26 @@
+name: Version tagging
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: tag new versions
+      run: |
+        version=$(jq -r .version *.install)
+        aliceMinVersion=$(jq -r .aliceMinVersion *.install)
+        git_refs_url=$(jq .repository.git_refs_url ${{ github.event_path }} | tr -d '"' | sed 's/{\/sha}//g')
+        echo "tag: $version>=$aliceMinVersion, $git_refs_url"
+        new_tag="$version>=$aliceMinVersion"
+        curl -s -X POST $git_refs_url \
+        -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+        -d @- << EOF
+        {
+          "ref": "refs/tags/$new_tag",
+          "sha": "${{ github.sha }}"
+        }
+        EOF
