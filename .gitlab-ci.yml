@@ -1,0 +1,2 @@
+include:
+  - remote: 'https://raw.githubusercontent.com/project-alice-assistant/CI_Templates_Skills/master/template.yml'
