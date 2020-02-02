@@ -20,10 +20,10 @@ class Zigbee2Mqtt(AliceSkill):
 	def bridgeStateReport(self, session: DialogSession):
 		if 'online' in session.payload:
 			self._online = True
-			self.log.info('Now online')
+			self.logInfo('Now online')
 		else:
 			self._online = False
-			self.log.info('Now offline')
+			self.logInfo('Now offline')
 
 
 	@MqttHandler('zigbee2mqtt/#')
