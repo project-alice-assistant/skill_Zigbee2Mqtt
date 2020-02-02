@@ -15,10 +15,10 @@ wget http://skills.projectalice.ch/Zigbee2Mqtt -O ~/ProjectAlice/system/skillIns
 
 Have your zigbee devices communicate with alice directly over mqtt
 
-- Version: 0.0.16
+- Version: 0.1.0
 - Author: Psychokiller1888
 - Maintainers: maxbachmann
-- Alice minimum Version: 1.0.0-a4
+- Alice minimum Version: 1.0.0-a5
 - Conditions: N/A
 - Pip requirements: N/A
 - System requirements: nodejs make g++ gcc
