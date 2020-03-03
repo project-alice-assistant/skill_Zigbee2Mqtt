@@ -2,7 +2,7 @@
 	"name": "Zigbee2Mqtt",
 	"version": "0.1.2",
 	"icon": "fab fa-battle-net",
-	"category": "undefined",
+	"category": "automation",
 	"author": "Psychokiller1888",
 	"maintainers": ["maxbachmann"],
 	"desc": "Have your zigbee devices communicate with alice directly over mqtt",
