@@ -4,14 +4,8 @@
 
 This skill assumes you have already flashed your zigbee dongle. For more info on how to: https://www.zigbee2mqtt.io/getting_started/flashing_the_cc2531.html
 
-### Description
-
 Have your zigbee devices communicate with alice directly over mqtt
 
-- Version: 0.1.2
 - Author: Psychokiller1888
 - Maintainers: maxbachmann
 - Alice minimum Version: 1.0.0-a5
-- Conditions: N/A
-- Pip requirements: N/A
-- System requirements: nodejs make g++ gcc
