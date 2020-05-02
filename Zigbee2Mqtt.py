@@ -31,11 +31,10 @@ class Zigbee2Mqtt(AliceSkill):
 		print(session.payload)
 
 
-	def onStart(self) -> list:
+	def onStart(self):
 		super().onStart()
 		subprocess.run(['sudo', 'systemctl', 'start', 'zigbee2mqtt'])
 		self.MqttManager.publish(topic='zigbee2mqtt/bridge/config/permit_join', payload='false')
-		return self.supportedIntents
 
 
 	def onStop(self):

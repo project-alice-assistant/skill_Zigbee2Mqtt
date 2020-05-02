@@ -1,12 +1,12 @@
 {
 	"name": "Zigbee2Mqtt",
-	"version": "0.1.2",
-	"icon": "fab fa-battle-net",
+	"version": "1.0.0",
+	"icon": "far fa-signal-stream",
 	"category": "automation",
 	"author": "Psychokiller1888",
 	"maintainers": ["maxbachmann"],
 	"desc": "Have your zigbee devices communicate with alice directly over mqtt",
-	"aliceMinVersion": "1.0.0-a5",
+	"aliceMinVersion": "1.0.0-a6",
 	"pipRequirements": [],
 	"systemRequirements": [
 		"make",
