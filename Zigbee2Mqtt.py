@@ -1,5 +1,6 @@
-from typing import Optional
+from typing import Dict, Generator, Optional
 
+from .model.ZigbeeDeviceHandler import ZigbeeDeviceHandler
 from core.base.model.AliceSkill import AliceSkill
 from core.dialog.model.DialogSession import DialogSession
 from core.util.Decorators import MqttHandler
@@ -20,6 +21,7 @@ class Zigbee2Mqtt(AliceSkill): #NOSONAR
 	def __init__(self):
 		self._online = False
 		self._devices = dict()
+		self._subscribers: Dict[str: AliceSkill] = dict()
 		super().__init__()
 
 
@@ -57,8 +59,37 @@ class Zigbee2Mqtt(AliceSkill): #NOSONAR
 			self._devices[session.payload['to']] = device
 
 
+	@MqttHandler('zigbee2mqtt/+')
+	def deviceMessage(self, session: DialogSession):
+		deviceName = session.intentName.split('/')[-1]
+		device = self._devices.get(deviceName, None)
+		if not device:
+			return
+
+		subscriber = self._subscribers.get(device['modelIID'], None)
+		if not subscriber:
+			return
+
+		try:
+			func = getattr(subscriber, 'onDeviceMessage')
+			func(session.payload)
+		except:
+			self.logWarning(f'{subscriber.name} is subscribed for devices but does not implement **onDeviceMessage**')
+
+
 	def getDevice(self, friendlyName: str) -> Optional[dict]:
 		return self._devices.get(friendlyName, None)
+
+
+	def getDevices(self) -> Generator[dict, None, None]:
+		for device in self._devices.values():
+			yield device
+
+
+	def subscribeForDevices(self, subscriber: ZigbeeDeviceHandler, deviceType: str):
+		print(subscriber)
+		print(deviceType)
+		self._subscribers[deviceType] = subscriber
 
 
 	def renameDevice(self, friendlyName: str, newName: str) -> bool:
@@ -110,3 +141,14 @@ class Zigbee2Mqtt(AliceSkill): #NOSONAR
 	def onStop(self):
 		super().onStop()
 		self.Commons.runRootSystemCommand(['systemctl', 'stop', 'zigbee2mqtt'])
+
+
+	def onBooted(self) -> bool:
+		for subscriber in self._subscribers.values():
+			try:
+				func = getattr(subscriber, 'onDeviceListReceived')
+				func(self._devices)
+			except:
+				self.logWarning(f'{subscriber.name} is subscribed for devices but does not implement **onDeviceListReceived**')
+
+		return True
