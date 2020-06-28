@@ -1,4 +1,4 @@
-from typing import Dict, Generator, Optional
+from typing import Callable, Dict, Generator, Optional
 
 from .model.ZigbeeDeviceHandler import ZigbeeDeviceHandler
 from core.base.model.AliceSkill import AliceSkill
@@ -12,7 +12,7 @@ class Zigbee2Mqtt(AliceSkill): #NOSONAR
 	Description: Have your zigbee devices communicate with alice directly over mqtt
 	"""
 
-	TOPIC_QUERY_DEVICE_LIST = 'zigbee2mqtt/bridge/config/devices'
+	TOPIC_QUERY_DEVICE_LIST = 'zigbee2mqtt/bridge/config/devices/get'
 	TOPIC_PERMIT_JOIN = 'zigbee2mqtt/bridge/config/permit_join'
 	TOPIC_REMOVE_DEVICE = 'zigbee2mqtt/bridge/config/remove'
 	TOPIC_RENAME_DEVICE = 'zigbee2mqtt/bridge/config/rename'
@@ -21,7 +21,7 @@ class Zigbee2Mqtt(AliceSkill): #NOSONAR
 	def __init__(self):
 		self._online = False
 		self._devices = dict()
-		self._subscribers: Dict[str: AliceSkill] = dict()
+		self._subscribers: Dict[str: ZigbeeDeviceHandler] = dict()
 		super().__init__()
 
 
@@ -30,24 +30,36 @@ class Zigbee2Mqtt(AliceSkill): #NOSONAR
 		if session.payload['state'] == b'online':
 			self._online = True
 			self.logInfo('Zigbee server online')
+
+			self.blockNewDeviceJoining()
+			self.publish(topic=self.TOPIC_QUERY_DEVICE_LIST)
 		else:
 			self._online = False
 			self.logInfo('Zigbee server offline')
 
 
+	@MqttHandler('zigbee2mqtt/bridge/config/devices')
+	def deviceList(self, session: DialogSession):
+		self.logDebug(f'Received device list')
+		self._devices = dict()
+
+		for device in session.payload:
+			if device['type'] != 'EndDevice':
+				continue
+
+			self._devices[device['friendly_name']] = device
+
+		for handler in self._subscribers.values():
+			handler.onDeviceListReceived(self._devices)
+
+
 	@MqttHandler('zigbee2mqtt/bridge/log')
-	def handleMessage(self, session: DialogSession):
+	def handleLogMessage(self, session: DialogSession):
 		logType = session.payload.get('type', None)
 		if not logType:
 			return
 
-		if logType == 'devices':
-			for device in session.payload['message']:
-				if device['type'] != 'EndDevice':
-					continue
-
-				self._devices[device['friendly_name']] = device
-		elif logType == 'device_removed':
+		if logType == 'device_removed':
 			self._devices.pop(session.payload['message'])
 		elif logType == 'device_renamed':
 			device = self._devices.pop(session.payload['from'], None)
@@ -59,22 +71,18 @@ class Zigbee2Mqtt(AliceSkill): #NOSONAR
 			self._devices[session.payload['to']] = device
 
 
-	@MqttHandler('zigbee2mqtt/+')
+	@MqttHandler('zigbee2mqtt/abc')
 	def deviceMessage(self, session: DialogSession):
 		deviceName = session.intentName.split('/')[-1]
 		device = self._devices.get(deviceName, None)
 		if not device:
 			return
 
-		subscriber = self._subscribers.get(device['modelIID'], None)
-		if not subscriber:
+		handler = self._subscribers.get(device['modelID'], None)
+		if not handler:
 			return
 
-		try:
-			func = getattr(subscriber, 'onDeviceMessage')
-			func(session.payload)
-		except:
-			self.logWarning(f'{subscriber.name} is subscribed for devices but does not implement **onDeviceMessage**')
+		handler(session.payload)
 
 
 	def getDevice(self, friendlyName: str) -> Optional[dict]:
@@ -86,10 +94,10 @@ class Zigbee2Mqtt(AliceSkill): #NOSONAR
 			yield device
 
 
-	def subscribeForDevices(self, subscriber: ZigbeeDeviceHandler, deviceType: str):
-		print(subscriber)
-		print(deviceType)
-		self._subscribers[deviceType] = subscriber
+	def subscribe(self, deviceType: str, onMessageCallback: Callable) -> ZigbeeDeviceHandler:
+		handler = ZigbeeDeviceHandler(deviceType=deviceType, onMessageCallback=onMessageCallback)
+		self._subscribers[deviceType] = handler
+		return handler
 
 
 	def renameDevice(self, friendlyName: str, newName: str) -> bool:
@@ -131,24 +139,11 @@ class Zigbee2Mqtt(AliceSkill): #NOSONAR
 		)
 
 
-	def onStart(self):
-		super().onStart()
+	def onBooted(self) -> bool:
 		self.Commons.runRootSystemCommand(['systemctl', 'start', 'zigbee2mqtt'])
-		self.blockNewDeviceJoining()
-		self.publish(topic=self.TOPIC_QUERY_DEVICE_LIST)
+		return super().onBooted()
 
 
 	def onStop(self):
 		super().onStop()
 		self.Commons.runRootSystemCommand(['systemctl', 'stop', 'zigbee2mqtt'])
-
-
-	def onBooted(self) -> bool:
-		for subscriber in self._subscribers.values():
-			try:
-				func = getattr(subscriber, 'onDeviceListReceived')
-				func(self._devices)
-			except:
-				self.logWarning(f'{subscriber.name} is subscribed for devices but does not implement **onDeviceListReceived**')
-
-		return True
