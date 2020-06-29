@@ -26,7 +26,7 @@ class Zigbee2Mqtt(AliceSkill):  # NOSONAR
 	def __init__(self):
 		self._online = False
 		self._devices = dict()
-		self._subscribers: Dict[str: ZigbeeDeviceHandler] = dict()
+		self._subscribers = dict()
 		super().__init__()
 
 
