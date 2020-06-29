@@ -8,5 +8,5 @@ This skill assumes you have already flashed your zigbee dongle. For more info on
 Have your zigbee devices communicate with alice directly over mqtt
 
 - Author: Psychokiller1888
-- Maintainers: maxbachmann
-- Alice minimum Version: 1.0.0-a5
+- Maintainers:
+- Alice minimum Version: 1.0.0-b1

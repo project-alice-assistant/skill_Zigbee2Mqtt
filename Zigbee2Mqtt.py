@@ -15,6 +15,7 @@ class Zigbee2Mqtt(AliceSkill):  # NOSONAR
 	TOPIC_QUERY_DEVICE_LIST = 'zigbee2mqtt/bridge/config/devices/get'
 	TOPIC_PERMIT_JOIN = 'zigbee2mqtt/bridge/config/permit_join'
 	TOPIC_REMOVE_DEVICE = 'zigbee2mqtt/bridge/config/remove'
+	TOPIC_FORCE_REMOVE_DEVICE = 'zigbee2mqtt/bridge/config/force_remove'
 	TOPIC_RENAME_DEVICE = 'zigbee2mqtt/bridge/config/rename'
 
 	TOPIC_BRIDGE_STATE = 'zigbee2mqtt/bridge/state'
@@ -54,7 +55,7 @@ class Zigbee2Mqtt(AliceSkill):  # NOSONAR
 		if not device:
 			return
 
-		handler = self._subscribers.get(device['modelID'], None)
+		handler = self._subscribers.get(f'{device["vendor"]}_{device["model"]}', None)
 		if not handler:
 			return
 
@@ -83,8 +84,8 @@ class Zigbee2Mqtt(AliceSkill):  # NOSONAR
 		self.logDebug(f'Received device list')
 		self._devices = dict()
 
-		for device in session.payload['list']:
-			if device['type'] != 'EndDevice':
+		for device in session.payload:
+			if device.get('type', '') != 'EndDevice':
 				continue
 
 			self._devices[device['friendly_name']] = device
@@ -99,15 +100,21 @@ class Zigbee2Mqtt(AliceSkill):  # NOSONAR
 			return
 
 		if logType == 'device_removed':
-			self._devices.pop(session.payload['message'])
+			device = session.payload['message'] if not 'meta' in session.payload else session.payload['meta']['friendly_name']
+			self._removeDevice(name=device)
 		elif logType == 'device_renamed':
-			device = self._devices.pop(session.payload['from'], None)
-
+			device = self._devices.pop(session.payload['message']['from'], None)
 			if not device:
 				return
 
-			device['friendlyName'] = session.payload['to']
-			self._devices[session.payload['to']] = device
+			device['friendlyName'] = session.payload['message']['to']
+			self._devices[session.payload['message']['to']] = device
+		elif logType == 'device_removed_failed':
+			self.publish(topic=self.TOPIC_FORCE_REMOVE_DEVICE, stringPayload=session.payload['message'])
+		elif logType == 'device_force_removed':
+			self._removeDevice(name=session.payload['message'])
+		elif logType == 'pairing':
+			self.publish(topic=self.TOPIC_QUERY_DEVICE_LIST)
 
 
 	def getDevice(self, friendlyName: str) -> Optional[dict]:
@@ -123,6 +130,23 @@ class Zigbee2Mqtt(AliceSkill):  # NOSONAR
 		handler = ZigbeeDeviceHandler(deviceType=deviceType, onMessageCallback=onMessageCallback)
 		self._subscribers[deviceType] = handler
 		return handler
+
+
+	def _removeDevice(self, name: str):
+		"""
+		Stricly internal, only called once the server has confirmed the deletion
+		:param name: device friend name
+		"""
+		device = self._devices.get(name, None)
+		if not device:
+			return
+
+		handler = self._subscribers.get(name, None)
+		if not handler:
+			return
+
+		handler.removeDevice(name)
+		self._devices.pop(name)
 
 
 	def renameDevice(self, friendlyName: str, newName: str) -> bool:
