@@ -1,12 +1,12 @@
 from typing import Callable, Dict, Generator, Optional
 
-from .model.ZigbeeDeviceHandler import ZigbeeDeviceHandler
 from core.base.model.AliceSkill import AliceSkill
 from core.dialog.model.DialogSession import DialogSession
 from core.util.Decorators import MqttHandler
+from .model.ZigbeeDeviceHandler import ZigbeeDeviceHandler
 
 
-class Zigbee2Mqtt(AliceSkill): #NOSONAR
+class Zigbee2Mqtt(AliceSkill):  # NOSONAR
 	"""
 	Author: Psychokiller1888
 	Description: Have your zigbee devices communicate with alice directly over mqtt
@@ -17,6 +17,11 @@ class Zigbee2Mqtt(AliceSkill): #NOSONAR
 	TOPIC_REMOVE_DEVICE = 'zigbee2mqtt/bridge/config/remove'
 	TOPIC_RENAME_DEVICE = 'zigbee2mqtt/bridge/config/rename'
 
+	TOPIC_BRIDGE_STATE = 'zigbee2mqtt/bridge/state'
+	TOPIC_DEVICES_CONFIG = 'zigbee2mqtt/bridge/config/devices'
+	TOPIC_BRIDGE_LOGS = 'zigbee2mqtt/bridge/log'
+	TOPIC_BRIDGE_CONFIGS = 'zigbee2mqtt/bridge/config'
+
 
 	def __init__(self):
 		self._online = False
@@ -25,25 +30,60 @@ class Zigbee2Mqtt(AliceSkill): #NOSONAR
 		super().__init__()
 
 
-	@MqttHandler('zigbee2mqtt/bridge/state')
+	@MqttHandler('zigbee2mqtt/#')
+	def zigbeeMessage(self, session: DialogSession):
+		if session.intentName == self.TOPIC_BRIDGE_STATE:
+			self.bridgeStateReport(session)
+
+		if not self._online:
+			return
+		elif session.intentName == self.TOPIC_DEVICES_CONFIG:
+			self.deviceList(session)
+		elif session.intentName == self.TOPIC_BRIDGE_LOGS:
+			self.handleLogMessage(session)
+		elif session.intentName.split('/')[-1] in self._devices:
+			self.deviceMessage(session)
+		else:
+			return False
+
+
+	def deviceMessage(self, session: DialogSession):
+		deviceName = session.intentName.split('/')[-1]
+		device = self._devices.get(deviceName, None)
+
+		if not device:
+			return
+
+		handler = self._subscribers.get(device['modelID'], None)
+		if not handler:
+			return
+
+		handler.onDeviceMessage(session.payload)
+
+
 	def bridgeStateReport(self, session: DialogSession):
-		if session.payload['state'] == b'online':
+		if session.payload['state'].decode() == 'online':
 			self._online = True
 			self.logInfo('Zigbee server online')
 
-			self.blockNewDeviceJoining()
-			self.publish(topic=self.TOPIC_QUERY_DEVICE_LIST)
-		else:
+
+			def later():
+				self.blockNewDeviceJoining()
+				self.publish(topic=self.TOPIC_QUERY_DEVICE_LIST)
+
+
+			self.ThreadManager.doLater(interval=1, func=later)
+
+		elif session.payload['state'].decode() == 'offline':
 			self._online = False
 			self.logInfo('Zigbee server offline')
 
 
-	@MqttHandler('zigbee2mqtt/bridge/config/devices')
 	def deviceList(self, session: DialogSession):
 		self.logDebug(f'Received device list')
 		self._devices = dict()
 
-		for device in session.payload:
+		for device in session.payload['list']:
 			if device['type'] != 'EndDevice':
 				continue
 
@@ -53,7 +93,6 @@ class Zigbee2Mqtt(AliceSkill): #NOSONAR
 			handler.onDeviceListReceived(self._devices)
 
 
-	@MqttHandler('zigbee2mqtt/bridge/log')
 	def handleLogMessage(self, session: DialogSession):
 		logType = session.payload.get('type', None)
 		if not logType:
@@ -69,20 +108,6 @@ class Zigbee2Mqtt(AliceSkill): #NOSONAR
 
 			device['friendlyName'] = session.payload['to']
 			self._devices[session.payload['to']] = device
-
-
-	@MqttHandler('zigbee2mqtt/abc')
-	def deviceMessage(self, session: DialogSession):
-		deviceName = session.intentName.split('/')[-1]
-		device = self._devices.get(deviceName, None)
-		if not device:
-			return
-
-		handler = self._subscribers.get(device['modelID'], None)
-		if not handler:
-			return
-
-		handler(session.payload)
 
 
 	def getDevice(self, friendlyName: str) -> Optional[dict]:
