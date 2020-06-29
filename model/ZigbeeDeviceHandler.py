@@ -8,7 +8,7 @@ class ZigbeeDeviceHandler(ProjectAliceObject):
 		super().__init__()
 		self._deviceType = deviceType
 		self._onMessage = onMessageCallback
-		self._devices = None
+		self._devices = dict()
 
 
 	def onDeviceMessage(self, message: Union[str, Dict]):
@@ -16,4 +16,4 @@ class ZigbeeDeviceHandler(ProjectAliceObject):
 
 
 	def onDeviceListReceived(self, listing: dict):
-		self._devices = listing
+		self._devices = listing.copy()
