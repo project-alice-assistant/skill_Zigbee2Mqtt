@@ -1,12 +1,13 @@
-from typing import Callable, Dict, Generator, Optional
+from typing import Callable, Generator, Optional
 
 from core.base.model.AliceSkill import AliceSkill
+from core.commons import constants
 from core.dialog.model.DialogSession import DialogSession
 from core.util.Decorators import MqttHandler
 from .model.ZigbeeDeviceHandler import ZigbeeDeviceHandler
 
 
-class Zigbee2Mqtt(AliceSkill):  # NOSONAR
+class Zigbee2Mqtt(AliceSkill):
 	"""
 	Author: Psychokiller1888
 	Description: Have your zigbee devices communicate with alice directly over mqtt
@@ -115,6 +116,7 @@ class Zigbee2Mqtt(AliceSkill):  # NOSONAR
 			self._removeDevice(name=session.payload['message'])
 		elif logType == 'pairing':
 			self.publish(topic=self.TOPIC_QUERY_DEVICE_LIST)
+			self.broadcast(method=constants.EVENT_DEVICE_ADDED, exceptions=[self.name], propagateToSkills=True)
 
 
 	def getDevice(self, friendlyName: str) -> Optional[dict]:
