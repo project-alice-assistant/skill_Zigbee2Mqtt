@@ -1,6 +1,6 @@
 {
     "name": "Zigbee2Mqtt",
-    "version": "1.1.4",
+    "version": "1.1.5",
     "icon": "far fa-signal-stream",
     "category": "automation",
     "author": "Psychokiller1888",
