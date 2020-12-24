@@ -1,0 +1,8 @@
+{
+	"createDeviceViaZigbee": {
+		"defaultValue": true,
+		"dataType": "bool",
+		"isSensitive": false,
+		"description": "Allow Alice to create devices that are registered in zigbee"
+	}
+}

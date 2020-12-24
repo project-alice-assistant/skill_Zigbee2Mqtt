@@ -13,8 +13,9 @@
 						"zigbee",
 						"zigbee sensor",
 						"zigbee thermometer",
-						"zigbee environment sensor",
-						"zigbee door sensor"
+						"zigbee Umgebungssensor",
+						"zigbee Türsensor",
+						"zigbee fensterkontakt"
 					]
 				}
 			]
