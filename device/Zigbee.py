@@ -56,3 +56,7 @@ class Zigbee(DeviceType):
 		#todo wait for rename done message
 
 		return True
+
+	def getDeviceIcon(self, device: Device) -> str:
+		#todo figure out a concept for getting the correct icon for that kind of device
+		return 'Zigbee.png'
