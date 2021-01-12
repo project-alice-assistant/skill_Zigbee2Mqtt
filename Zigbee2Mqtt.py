@@ -123,7 +123,9 @@ class Zigbee2Mqtt(AliceSkill):
 						                                         skillName=self.name,
 						                                         deviceType='Zigbee',
 						                                         uid=devicePayload['ieeeAddr'])
-						device.changeName(devicePayload['friendly_name'])
+						if device.displayName != devicePayload['friendly_name']:
+							device.displayName = devicePayload['friendly_name']
+							device.saveToDB()
 					else:
 						self.logWarning(f'device {devicePayload["friendly_name"]} not existing!\n {devicePayload}')
 					pass
