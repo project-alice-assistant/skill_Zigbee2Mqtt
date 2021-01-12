@@ -76,7 +76,7 @@ class Zigbee2Mqtt(AliceSkill):
 		if not device:
 			return False
 
-		device.onZigbeeMessage(device, session.payload)
+		device.onZigbeeMessage(session.payload)
 		return True
 
 
