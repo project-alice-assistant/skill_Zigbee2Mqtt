@@ -5,6 +5,7 @@ from core.commons import constants
 from core.dialog.model.DialogSession import DialogSession
 from core.util.Decorators import MqttHandler
 from core.device.model.Device import Device
+from core.device.model.DeviceAbility import DeviceAbility
 
 
 class Zigbee2Mqtt(AliceSkill):
@@ -25,12 +26,27 @@ class Zigbee2Mqtt(AliceSkill):
 	TOPIC_BRIDGE_CONFIGS = 'zigbee2mqtt/bridge/config'
 
 
+	DEVICES = {
+		'Zigbee': {
+			'deviceTypeName'    : 'Zigbee',
+			'perLocationLimit'  : 0,
+			'totalDeviceLimit'  : 0,
+			'allowLocationLinks': True,
+			'heartbeatRate'     : 0,
+			'deviceSettings'    : { 'storeTelemetry': True,
+									'excludedTelmetry': ''
+									},
+			'abilities'         : [DeviceAbility.NONE]
+		}
+	}
+
+
 	def __init__(self):
 		self._online = False
 		self._lastMessage = ''
 		self._limitToOne = False
 		self._currentlyPairing = None
-		super().__init__()
+		super().__init__(devices=self.DEVICES)
 
 
 	@MqttHandler('zigbee2mqtt/#')
@@ -89,14 +105,18 @@ class Zigbee2Mqtt(AliceSkill):
 			if devicePayload.get('type', '') != 'EndDevice':
 				continue
 
-			device = self.DeviceManager.getDeviceByUID(uid=devicePayload['ieeeAddr'])
+			device = self.DeviceManager.getDevice(uid=devicePayload['ieeeAddr'])
 			if not device:
-				device = self.DeviceManager.getDeviceByUID(uid='')
+				devices = self.DeviceManager.getDevicesBySkill(skillName=self.name)
+				for search in devices:
+					if search.uid == '-1':
+						device = search
+						break
 				if device:
 					device.pairingDone(uid=devicePayload['ieeeAddr'])
 				else:
 					if self.getConfig('createDeviceViaZigbee'):
-						defLocation = self.DeviceManager.getMainDevice().getMainLocation()
+						defLocation = self.DeviceManager.getMainDevice().getLocation()
 						deviceType = self.DeviceManager.getDeviceTypeByName('Zigbee')
 						self.logInfo(f'Creating device for {devicePayload["friendly_name"]} in {defLocation.name} ')
 

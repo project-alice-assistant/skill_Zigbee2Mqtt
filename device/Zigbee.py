@@ -4,6 +4,8 @@ from core.device.model.Device import Device
 from core.dialog.model.DialogSession import DialogSession
 from core.util.model.TelemetryType import TelemetryType
 
+from typing import Union, Dict
+
 class Zigbee(DeviceType):
 	DEV_SETTINGS = {
 		'storeTelemetry': True,
@@ -11,8 +13,8 @@ class Zigbee(DeviceType):
 	}
 	LOC_SETTINGS = {}
 
-	def __init__(self, data: sqlite3.Row):
-		super().__init__(data, devSettings=self.DEV_SETTINGS, locSettings=self.LOC_SETTINGS, heartbeatRate=0)
+	def __init__(self, data: Union[sqlite3.Row, Dict]):
+		super().__init__(data)
 
 
 	def discover(self, device: Device, uid: str, replyOnSiteId: str = "", session: DialogSession = None) -> bool:
