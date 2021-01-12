@@ -117,12 +117,11 @@ class Zigbee2Mqtt(AliceSkill):
 				else:
 					if self.getConfig('createDeviceViaZigbee'):
 						defLocation = self.DeviceManager.getMainDevice().getLocation()
-						deviceType = self.DeviceManager.getDeviceTypeByName('Zigbee')
 						self.logInfo(f'Creating device for {devicePayload["friendly_name"]} in {defLocation.name} ')
 
 						device = self.DeviceManager.addNewDevice(locationId=defLocation.id,
 						                                         skillName=self.name,
-						                                         deviceTypeId=deviceType.id,
+						                                         deviceType='Zigbee',
 						                                         uid=devicePayload['ieeeAddr'])
 						device.changeName(devicePayload['friendly_name'])
 					else:

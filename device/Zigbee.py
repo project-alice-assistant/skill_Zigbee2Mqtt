@@ -6,7 +6,7 @@ from core.util.model.TelemetryType import TelemetryType
 
 from typing import Union, Dict
 
-class Zigbee(DeviceType):
+class Zigbee(Device):
 	DEV_SETTINGS = {
 		'storeTelemetry': True,
 		'excludedTelmetry': ''  #define csv which should not be added to telemetry, e.g. battery,linkquality
@@ -57,6 +57,6 @@ class Zigbee(DeviceType):
 
 		return True
 
-	def getDeviceIcon(self, device: Device) -> str:
+	def getDeviceIcon(self) -> str:
 		#todo figure out a concept for getting the correct icon for that kind of device
 		return 'Zigbee.png'
