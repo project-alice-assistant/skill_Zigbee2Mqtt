@@ -29,15 +29,14 @@ class Zigbee(Device):
 	def toggle(self, device: Device):
 		pass
 
-	def onZigbeeMessage(self, device: Device, payload):
-		if True or device.devSettings['storeTelemetry']:
+	def onZigbeeMessage(self, payload):
+		if True or self.devSettings['storeTelemetry']:
 			#exploded = [excl.strip() for excl in device.devSettings['excludedTelemetry'].split(',')]
-			self.parentSkillInstance.logInfo(payload)
 			for key, val in payload.items():
 				#if not key in exploded:
 				try:
 					ttype = TelemetryType(key)
-					self.TelemetryManager.storeData(siteId=device.uid, locationID=device.getMainLocation().id, service=self.name, ttype=ttype, value=val)
+					self.TelemetryManager.storeData(siteId=self.uid, locationID=device.getLocation().id, service='Zigbee', ttype=ttype, value=val)
 				except ValueError:
 					pass
 		else:
@@ -56,7 +55,3 @@ class Zigbee(Device):
 		#todo wait for rename done message
 
 		return True
-
-	def getDeviceIcon(self) -> str:
-		#todo figure out a concept for getting the correct icon for that kind of device
-		return 'Zigbee.png'
