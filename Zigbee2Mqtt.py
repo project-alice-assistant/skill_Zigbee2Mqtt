@@ -32,7 +32,7 @@ class Zigbee2Mqtt(AliceSkill):
 			'perLocationLimit'  : 0,
 			'totalDeviceLimit'  : 0,
 			'allowLocationLinks': True,
-			'heartbeatRate'     : 0,
+			'heartbeatRate'     : 2700,
 			'deviceSettings'    : { 'storeTelemetry': True,
 									'excludedTelmetry': ''
 									},
@@ -77,6 +77,7 @@ class Zigbee2Mqtt(AliceSkill):
 			return False
 
 		device.onZigbeeMessage(session.payload)
+		self.broadcast(method=constants.EVENT_DEVICE_HEARTBEAT, exceptions=[self.name], propagateToSkills=True, uid=device.uid, siteId=device.id)
 		return True
 
 
