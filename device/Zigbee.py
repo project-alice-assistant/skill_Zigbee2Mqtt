@@ -36,7 +36,7 @@ class Zigbee(Device):
 				#if not key in exploded:
 				try:
 					ttype = TelemetryType(key)
-					self.TelemetryManager.storeData(deviceId=self.uid, locationID=self.getLocation().id, service='Zigbee', ttype=ttype, value=val)
+					self.TelemetryManager.storeData(deviceId=self.id, locationId=self.getLocation().id, service='Zigbee', ttype=ttype, value=val)
 				except ValueError:
 					pass
 		else:
