@@ -5,7 +5,6 @@ from core.commons import constants
 from core.dialog.model.DialogSession import DialogSession
 from core.util.Decorators import MqttHandler
 from core.device.model.Device import Device
-from core.device.model.DeviceAbility import DeviceAbility
 
 
 class Zigbee2Mqtt(AliceSkill):

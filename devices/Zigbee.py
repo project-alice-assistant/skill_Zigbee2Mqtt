@@ -3,13 +3,14 @@ import sqlite3
 from core.device.model.Device import Device
 from core.dialog.model.DialogSession import DialogSession
 from core.util.model.TelemetryType import TelemetryType
+from core.device.model.DeviceAbility import DeviceAbility
 
 from typing import Union, Dict
 
 class Zigbee(Device):
 
 	@classmethod
-	def getDeviceTypeDevinition(cls) -> dict:
+	def getDeviceTypeDefinition(cls) -> dict:
 		return { 'deviceTypeName'        : 'Zigbee',
 		         'perLocationLimit'      : 0,
 		         'totalDeviceLimit'      : 0,
