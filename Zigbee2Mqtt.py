@@ -25,28 +25,12 @@ class Zigbee2Mqtt(AliceSkill):
 	TOPIC_BRIDGE_LOGS = 'zigbee2mqtt/bridge/log'
 	TOPIC_BRIDGE_CONFIGS = 'zigbee2mqtt/bridge/config'
 
-
-	DEVICES = {
-		'Zigbee': {
-			'deviceTypeName'    : 'Zigbee',
-			'perLocationLimit'  : 0,
-			'totalDeviceLimit'  : 0,
-			'allowLocationLinks': True,
-			'heartbeatRate'     : 2700,
-			'deviceSettings'    : { 'storeTelemetry': True,
-									'excludedTelmetry': ''
-									},
-			'abilities'         : [DeviceAbility.NONE]
-		}
-	}
-
-
 	def __init__(self):
 		self._online = False
 		self._lastMessage = ''
 		self._limitToOne = False
 		self._currentlyPairing = None
-		super().__init__(devices=self.DEVICES)
+		super().__init__()
 
 
 	@MqttHandler('zigbee2mqtt/#')

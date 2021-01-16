@@ -7,11 +7,19 @@ from core.util.model.TelemetryType import TelemetryType
 from typing import Union, Dict
 
 class Zigbee(Device):
-	DEV_SETTINGS = {
-		'storeTelemetry': True,
-		'excludedTelmetry': ''  #define csv which should not be added to telemetry, e.g. battery,linkquality
-	}
-	LOC_SETTINGS = {}
+
+	@classmethod
+	def getDeviceTypeDevinition(cls) -> dict:
+		return { 'deviceTypeName'        : 'Zigbee',
+		         'perLocationLimit'      : 0,
+		         'totalDeviceLimit'      : 0,
+		         'allowLocationLinks'    : True,
+		         'allowHeartbeatOverride': True,
+		         'heartbeatRate'         : 2700,
+		         'deviceSettings'        : { 'storeTelemetry': True,
+		                                     'excludedTelmetry': '' },
+		         'abilities'             : [DeviceAbility.NONE]
+		}
 
 	def __init__(self, data: Union[sqlite3.Row, Dict]):
 		super().__init__(data)
