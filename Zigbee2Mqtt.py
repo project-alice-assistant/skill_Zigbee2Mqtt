@@ -106,13 +106,10 @@ class Zigbee2Mqtt(AliceSkill):
 						device = self.DeviceManager.addNewDevice(locationId=defLocation.id,
 						                                         skillName=self.name,
 						                                         deviceType='Zigbee',
-						                                         uid=devicePayload['ieeeAddr'])
-						if device.displayName != devicePayload['friendly_name']:
-							device.displayName = devicePayload['friendly_name']
-							device.saveToDB()
+						                                         uid=devicePayload['ieeeAddr'],
+						                                         displayName=devicePayload['friendly_name'])
 					else:
 						self.logWarning(f'device {devicePayload["friendly_name"]} not existing!\n {devicePayload}')
-					pass
 
 
 	def handleLogMessage(self, session: DialogSession):
