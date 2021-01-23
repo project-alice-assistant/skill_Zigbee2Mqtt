@@ -34,6 +34,7 @@ class Zigbee(Device):
 			self.publish(topic=self.TOPIC_QUERY_DEVICE_LIST)
 
 		self.ThreadManager.doLater(interval=60, func=later)
+		return true
 
 	def toggle(self, device: Device):
 		pass
