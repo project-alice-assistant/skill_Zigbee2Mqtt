@@ -1,5 +1,3 @@
-from typing import Callable, Generator, Optional
-
 from core.base.model.AliceSkill import AliceSkill
 from core.commons import constants
 from core.dialog.model.DialogSession import DialogSession
@@ -60,7 +58,7 @@ class Zigbee2Mqtt(AliceSkill):
 			return False
 
 		device.onZigbeeMessage(session.payload)
-		self.broadcast(method=constants.EVENT_DEVICE_HEARTBEAT, exceptions=[self.name], propagateToSkills=True, uid=device.uid, siteId=device.id)
+		self.broadcast(method=constants.EVENT_DEVICE_HEARTBEAT, exceptions=[self.name], propagateToSkills=True, uid=device.uid, deviceUid=device.id)
 		return True
 
 
@@ -103,13 +101,13 @@ class Zigbee2Mqtt(AliceSkill):
 						defLocation = self.DeviceManager.getMainDevice().getLocation()
 						self.logInfo(f'Creating device for {devicePayload["friendly_name"]} in {defLocation.name} ')
 
-						device = self.DeviceManager.addNewDevice(locationId=defLocation.id,
+						self.DeviceManager.addNewDevice(locationId=defLocation.id,
 						                                         skillName=self.name,
 						                                         deviceType='Zigbee',
 						                                         uid=devicePayload['ieeeAddr'],
 						                                         displayName=devicePayload['friendly_name'])
 					else:
-						self.logWarning(f'device {devicePayload["friendly_name"]} not existing!\n {devicePayload}')
+						self.logWarning(f'Device {devicePayload["friendly_name"]} not existing!\n {devicePayload}')
 
 
 	def handleLogMessage(self, session: DialogSession):
