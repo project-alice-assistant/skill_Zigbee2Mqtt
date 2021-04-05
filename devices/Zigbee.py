@@ -24,10 +24,6 @@ class Zigbee(Device):
 		         'abilities'             : [DeviceAbility.NONE]
 		}
 
-	def __init__(self, data: Union[sqlite3.Row, Dict]):
-		super().__init__(data)
-
-
 	def onUIClick(self) -> dict:
 		"""
 		Called whenever a device's icon is clicked on the UI
@@ -35,6 +31,10 @@ class Zigbee(Device):
 		"""
 		if not self.paired:
 			self.discover()
+			return OnClickReaction(
+				action=ClickReactionAction.INFO_NOTIFICATION.value,
+				data='notifications.info.pleasePlugDevice'
+			).toDict()
 
 		return OnClickReaction(action=ClickReactionAction.NONE.value).toDict()
 
@@ -44,7 +44,7 @@ class Zigbee(Device):
 
 		def later():
 			self.skillInstance.blockNewDeviceJoining()
-			self.skillInstance.publish(topic=self.TOPIC_QUERY_DEVICE_LIST)
+			self.skillInstance.publish(topic=self.skillInstance.TOPIC_QUERY_DEVICE_LIST)
 
 		self.ThreadManager.doLater(interval=60, func=later)
 		return True
