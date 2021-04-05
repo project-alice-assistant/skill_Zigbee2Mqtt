@@ -4,6 +4,8 @@ from core.device.model.Device import Device
 from core.dialog.model.DialogSession import DialogSession
 from core.util.model.TelemetryType import TelemetryType
 from core.device.model.DeviceAbility import DeviceAbility
+from core.webui.model.ClickReactionAction import ClickReactionAction
+from core.webui.model.OnClickReaction import OnClickReaction
 
 from typing import Union, Dict
 
@@ -26,12 +28,23 @@ class Zigbee(Device):
 		super().__init__(data)
 
 
-	def discover(self, device: Device, uid: str, replyOnSiteId: str = "", session: DialogSession = None) -> bool:
-		self.parentSkillInstance.allowNewDeviceJoining(limitToOne=True, device=device)
+	def onUIClick(self) -> dict:
+		"""
+		Called whenever a device's icon is clicked on the UI
+		:return:
+		"""
+		if not self.paired:
+			self.discover()
+
+		return OnClickReaction(action=ClickReactionAction.NONE.value).toDict()
+
+
+	def discover(self, replyOnSiteId: str = "", session: DialogSession = None) -> bool:
+		self.skillInstance.allowNewDeviceJoining(limitToOne=True, device=self)
 
 		def later():
-			self.blockNewDeviceJoining()
-			self.publish(topic=self.TOPIC_QUERY_DEVICE_LIST)
+			self.skillInstance.blockNewDeviceJoining()
+			self.skillInstance.publish(topic=self.TOPIC_QUERY_DEVICE_LIST)
 
 		self.ThreadManager.doLater(interval=60, func=later)
 		return True
