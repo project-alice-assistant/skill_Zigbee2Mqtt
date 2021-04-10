@@ -4,12 +4,15 @@ from core.device.model.Device import Device
 from core.dialog.model.DialogSession import DialogSession
 from core.util.model.TelemetryType import TelemetryType
 from core.device.model.DeviceAbility import DeviceAbility
-from core.webui.model.ClickReactionAction import ClickReactionAction
+from core.webui.model.DeviceClickReactionAction import DeviceClickReactionAction
 from core.webui.model.OnClickReaction import OnClickReaction
 
 from typing import Union, Dict
 
 class Zigbee(Device):
+
+	def __init__(self, data: Union[sqlite3.Row, Dict]):
+		super().__init__(data)
 
 	@classmethod
 	def getDeviceTypeDefinition(cls) -> dict:
@@ -32,11 +35,11 @@ class Zigbee(Device):
 		if not self.paired:
 			self.discover()
 			return OnClickReaction(
-				action=ClickReactionAction.INFO_NOTIFICATION.value,
+				action=DeviceClickReactionAction.INFO_NOTIFICATION.value,
 				data='notifications.info.pleasePlugDevice'
 			).toDict()
 
-		return OnClickReaction(action=ClickReactionAction.NONE.value).toDict()
+		return OnClickReaction(action=DeviceClickReactionAction.NONE.value).toDict()
 
 
 	def discover(self, replyOnSiteId: str = "", session: DialogSession = None) -> bool:
