@@ -22,8 +22,6 @@ class Zigbee(Device):
 		         'allowLocationLinks'    : True,
 		         'allowHeartbeatOverride': True,
 		         'heartbeatRate'         : 2700,
-		         'deviceSettings'        : { 'storeTelemetry': True,
-		                                     'excludedTelmetry': '' },
 		         'abilities'             : [DeviceAbility.NONE]
 		}
 

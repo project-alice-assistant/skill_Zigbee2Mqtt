@@ -1,0 +1,16 @@
+{
+	"deviceConfigs": {
+		"storeTelemetry": {
+			"defaultValue": true,
+			"dataType"    : "boolean",
+			"isSensitive" : false,
+			"description" : "Should telemetry be stored for this device?"
+		},
+		"excludedTelmetry": {
+			"defaultValue": "",
+			"dataType"    : "string",
+			"isSensitive" : false,
+			"description" : "Telemetry types that should not be stored (e.g. voltage if battery percentage is given as well)"
+		}
+	}
+}
