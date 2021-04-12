@@ -54,7 +54,7 @@ class Zigbee(Device):
 		pass
 
 	def onZigbeeMessage(self, payload):
-		if True or self.devSettings['storeTelemetry']:
+		if True or self.getConfig('storeTelemetry'):
 			#exploded = [excl.strip() for excl in device.devSettings['excludedTelemetry'].split(',')]
 			for key, val in payload.items():
 				#if not key in exploded:
