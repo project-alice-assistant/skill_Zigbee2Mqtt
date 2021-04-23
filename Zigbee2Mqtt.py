@@ -1,8 +1,8 @@
 from core.base.model.AliceSkill import AliceSkill
 from core.commons import constants
+from core.device.model.Device import Device
 from core.dialog.model.DialogSession import DialogSession
 from core.util.Decorators import MqttHandler
-from core.device.model.Device import Device
 
 
 class Zigbee2Mqtt(AliceSkill):
@@ -84,7 +84,7 @@ class Zigbee2Mqtt(AliceSkill):
 		self.logDebug(f'Received device list, checking for new devices')
 
 		for devicePayload in session.payload:
-			if devicePayload.get('type', '') != 'EndDevice':
+			if devicePayload.get('type', '') not in ['Router', 'EndDevice']:
 				continue
 
 			device = self.DeviceManager.getDevice(uid=devicePayload['ieeeAddr'])
