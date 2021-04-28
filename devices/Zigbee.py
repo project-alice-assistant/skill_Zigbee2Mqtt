@@ -81,6 +81,10 @@ class Zigbee(Device):
 			state = payload.get('state', None)
 			if state is not None:
 				self.updateParams('state', state)
+		elif self.zigbeeType == 'window':
+			contact = payload.get('contact', None)
+			if contact is not None:
+				self.updateParams('contact', contact)
 
 		if True or self.getConfig('storeTelemetry'):
 			# exploded = [excl.strip() for excl in device.devSettings['excludedTelemetry'].split(',')]
@@ -118,6 +122,8 @@ class Zigbee(Device):
 		for exposure in exposes:
 			if exposure['type'] in ['light', 'switch', 'fan', 'cover', 'lock', 'climate']:
 				return exposure['type']
+			elif exposure['type'] == 'binary' and exposure['property'] == 'contact':
+				return "window"
 		return ""
 
 
@@ -125,4 +131,6 @@ class Zigbee(Device):
 	def zigbeeStatus(self) -> str:
 		if self.zigbeeType == 'switch':
 			return self.getParam('state', "")
+		if self.zigbeeType == 'window':
+			return self.getParam('contact', "")
 		return ""
