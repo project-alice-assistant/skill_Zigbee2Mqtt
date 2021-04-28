@@ -1,22 +1,25 @@
-from core.device.model.DeviceType import DeviceType
 import sqlite3
 from core.device.model.Device import Device
+from core.device.model.DeviceAbility import DeviceAbility
+from core.device.model.DeviceType import DeviceType
 from core.dialog.model.DialogSession import DialogSession
 from core.util.model.TelemetryType import TelemetryType
-from core.device.model.DeviceAbility import DeviceAbility
 from core.webui.model.DeviceClickReactionAction import DeviceClickReactionAction
 from core.webui.model.OnDeviceClickReaction import OnDeviceClickReaction
+from pathlib import Path
+from typing import Dict, Union
 
-from typing import Union, Dict
 
 class Zigbee(Device):
 
 	def __init__(self, data: Union[sqlite3.Row, Dict]):
 		super().__init__(data)
 
+
 	@classmethod
 	def getDeviceTypeDefinition(cls) -> dict:
-		return { 'deviceTypeName'        : 'Zigbee',
+		return {
+			'deviceTypeName'             : 'Zigbee',
 		         'perLocationLimit'      : 0,
 		         'totalDeviceLimit'      : 0,
 		         'allowLocationLinks'    : True,
@@ -37,15 +40,34 @@ class Zigbee(Device):
 				data='notifications.info.pleasePlugDevice'
 			).toDict()
 
+		if self.zigbeeType == 'switch':
+			self.skillInstance.publish(topic=f'zigbee2mqtt/{self._deviceConfigs["displayName"]}/set', payload={'state': 'TOGGLE'})
+
 		return OnDeviceClickReaction(action=DeviceClickReactionAction.NONE.value).toDict()
+
+
+	def getDeviceIcon(self) -> Path:
+		"""
+		Return the path of the icon representing the current status of the device
+		e.g. a light bulb can be on or off and display its status
+		:return: the icon file path
+		"""
+		base = self._typeName
+		type = self.zigbeeType
+		status = self.zigbeeStatus
+		return Path(f'{self.Commons.rootDir()}/skills/{self.skillName}/devices/img/{base}'
+		            f'{f"_{type}" if type else ""}'
+		            f'{f"_{status}" if status else ""}.png')
 
 
 	def discover(self, replyOnSiteId: str = "", session: DialogSession = None) -> bool:
 		self.skillInstance.allowNewDeviceJoining(limitToOne=True, device=self)
 
+
 		def later():
 			self.skillInstance.blockNewDeviceJoining()
 			self.skillInstance.publish(topic=self.skillInstance.TOPIC_QUERY_DEVICE_LIST)
+
 
 		self.ThreadManager.doLater(interval=60, func=later)
 		return True
@@ -53,11 +75,17 @@ class Zigbee(Device):
 	def toggle(self, device: Device):
 		pass
 
+
 	def onZigbeeMessage(self, payload):
+		if self.zigbeeType == 'switch':
+			state = payload.get('state', None)
+			if state is not None:
+				self.updateParams('state', state)
+
 		if True or self.getConfig('storeTelemetry'):
-			#exploded = [excl.strip() for excl in device.devSettings['excludedTelemetry'].split(',')]
+			# exploded = [excl.strip() for excl in device.devSettings['excludedTelemetry'].split(',')]
 			for key, val in payload.items():
-				#if not key in exploded:
+				# if not key in exploded:
 				try:
 					ttype = TelemetryType(key)
 					self.TelemetryManager.storeData(deviceId=self.id, locationId=self.getLocation().id, service='Zigbee', ttype=ttype, value=val)
@@ -71,11 +99,30 @@ class Zigbee(Device):
 		if ' ' in newName:
 			newName = newName.replace(' ', '_')
 
+		self.parentSkillInstance.publish(topic=self.parentSkillInstance.TOPIC_RENAME_DEVICE,
+		                                 payload={
+			                                 'old': device.name,
+			                                 'new': newName
+		                                 })
 
-		self.parentSkillInstance.publish(   topic=self.parentSkillInstance.TOPIC_RENAME_DEVICE,
-						payload={   'old': device.name,
-									'new': newName })
-
-		#todo wait for rename done message
+		# todo wait for rename done message
 
 		return True
+
+
+	@property
+	def zigbeeType(self) -> str:
+		exposes = self.getParam('exposes')
+		if not exposes:
+			return ""
+		for exposure in exposes:
+			if exposure['type'] in ['light', 'switch', 'fan', 'cover', 'lock', 'climate']:
+				return exposure['type']
+		return ""
+
+
+	@property
+	def zigbeeStatus(self) -> str:
+		if self.zigbeeType == 'switch':
+			return self.getParam('state', "")
+		return ""

@@ -19,8 +19,10 @@ class Zigbee2Mqtt(AliceSkill):
 
 	TOPIC_BRIDGE_STATE = 'zigbee2mqtt/bridge/state'
 	TOPIC_DEVICES_CONFIG = 'zigbee2mqtt/bridge/config/devices'
+	TOPIC_DEVICES = 'zigbee2mqtt/bridge/devices'
 	TOPIC_BRIDGE_LOGS = 'zigbee2mqtt/bridge/log'
 	TOPIC_BRIDGE_CONFIGS = 'zigbee2mqtt/bridge/config'
+
 
 	def __init__(self):
 		self._online = False
@@ -35,9 +37,7 @@ class Zigbee2Mqtt(AliceSkill):
 		if session.intentName == self.TOPIC_BRIDGE_STATE:
 			self.bridgeStateReport(session)
 
-		if not self._online:
-			return
-		elif session.intentName == self.TOPIC_DEVICES_CONFIG:
+		if session.intentName == self.TOPIC_DEVICES or session.intentName == self.TOPIC_DEVICES_CONFIG:
 			self.deviceList(session)
 		elif session.intentName == self.TOPIC_BRIDGE_LOGS:
 			self.handleLogMessage(session)
@@ -52,7 +52,9 @@ class Zigbee2Mqtt(AliceSkill):
 		else:
 			self._lastMessage = session.payload
 		deviceName = session.intentName.split('/')[-1]
-		device = self.DeviceManager.getDeviceByName(name=deviceName)
+		if not deviceName:
+			return False
+		device = self.DeviceManager.getDevice(uid=self.DeviceManager.generateUuid3(skillName=self.name, unique=deviceName))
 
 		if not device:
 			return False
@@ -82,12 +84,18 @@ class Zigbee2Mqtt(AliceSkill):
 
 	def deviceList(self, session: DialogSession):
 		self.logDebug(f'Received device list, checking for new devices')
+		if self.DeviceManager.getMainDevice() is None:
+			self.logDebug(f'Can\'t add devices without a default location')
+			return
 
 		for devicePayload in session.payload:
 			if devicePayload.get('type', '') not in ['Router', 'EndDevice']:
 				continue
-
-			device = self.DeviceManager.getDevice(uid=devicePayload['ieeeAddr'])
+			if 'ieeeAddr' in devicePayload:
+				ieeeAddr = devicePayload['ieeeAddr']
+			else:
+				ieeeAddr = devicePayload['ieee_address']
+			device = self.DeviceManager.getDevice(uid=self.DeviceManager.generateUuid3(skillName=self.name, unique=ieeeAddr))
 			if not device:
 				devices = self.DeviceManager.getDevicesBySkill(skillName=self.name)
 				for search in devices:
@@ -95,19 +103,24 @@ class Zigbee2Mqtt(AliceSkill):
 						device = search
 						break
 				if device:
-					device.pairingDone(uid=devicePayload['ieeeAddr'])
+					device.pairingDone(uid=self.DeviceManager.generateUuid3(skillName=self.name, unique=devicePayload['ieeeAddr']))
 				else:
 					if self.getConfig('createDeviceViaZigbee'):
 						defLocation = self.DeviceManager.getMainDevice().getLocation()
 						self.logInfo(f'Creating device for {devicePayload["friendly_name"]} in {defLocation.name} ')
 
 						self.DeviceManager.addNewDevice(locationId=defLocation.id,
-						                                         skillName=self.name,
-						                                         deviceType='Zigbee',
-						                                         uid=devicePayload['ieeeAddr'],
-						                                         displayName=devicePayload['friendly_name'])
+						                                skillName=self.name,
+						                                deviceType='Zigbee',
+						                                uid=str(self.DeviceManager.generateUuid3(skillName=self.name, unique=ieeeAddr)),
+						                                displayName=devicePayload['friendly_name'])
+						device = self.DeviceManager.getDevice(uid=self.DeviceManager.generateUuid3(skillName=self.name, unique=ieeeAddr))
 					else:
 						self.logWarning(f'Device {devicePayload["friendly_name"]} not existing!\n {devicePayload}')
+			# check for updated definition
+			if device:
+				if 'definition' in devicePayload and 'exposes' in devicePayload['definition']:
+					device.updateParams(key='exposes', value=devicePayload['definition']['exposes'])
 
 
 	def handleLogMessage(self, session: DialogSession):
@@ -132,17 +145,18 @@ class Zigbee2Mqtt(AliceSkill):
 			self._removeDevice(name=session.payload['message'])
 
 		elif logType == 'pairing':
-			#todo interview_started vs interview_successful
+			# todo interview_started vs interview_successful
 			if not self._currentlyPairing:
-				#todo check if device was existing
+				# todo check if device was existing
 				pass
 			if session.payload['message'] != 'interview_successful':
 				return
-			#session.payload['message']['meta']['friendly_name']
+			# session.payload['message']['meta']['friendly_name']
 
 			self._currentlyPairing = None
+			device = self.DeviceManager.getDeviceByName(name=session.payload['message']['meta']['friendly_name'])
 
-			self.broadcast(method=constants.EVENT_DEVICE_ADDED, exceptions=[self.name], propagateToSkills=True)
+			self.broadcast(method=constants.EVENT_DEVICE_ADDED, exceptions=[self.name], propagateToSkills=True, kwargs=[device, device.uid])
 			if self._limitToOne:
 				self.blockNewDeviceJoining()
 
