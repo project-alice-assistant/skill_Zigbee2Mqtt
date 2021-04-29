@@ -78,13 +78,12 @@ class Zigbee(Device):
 
 	def onZigbeeMessage(self, payload):
 		if self.zigbeeType == 'switch':
-			state = payload.get('state', None)
-			if state is not None:
-				self.updateParams('state', state)
+			self.updateParamFromPayload(payload, 'state')
 		elif self.zigbeeType == 'window':
-			contact = payload.get('contact', None)
-			if contact is not None:
-				self.updateParams('contact', contact)
+			self.updateParamFromPayload(payload, 'contact')
+		elif self.zigbeeType == 'environment':
+			self.updateParamFromPayload(payload, 'temperature')
+			self.updateParamFromPayload(payload, 'humidity')
 
 		if True or self.getConfig('storeTelemetry'):
 			# exploded = [excl.strip() for excl in device.devSettings['excludedTelemetry'].split(',')]
@@ -124,6 +123,16 @@ class Zigbee(Device):
 				return exposure['type']
 			elif exposure['type'] == 'binary' and exposure['property'] == 'contact':
 				return "window"
+			elif exposure['type'] == 'numeric' and exposure['property'] == 'temperature':
+				hasTemp = True
+			elif exposure['type'] == 'numeric' and exposure['property'] == 'humidity':
+				hasHumidity = True
+		if hasTemp and hasHumidity:
+			return 'environment'
+		elif hasTemp:
+			return 'thermometer'
+		elif hasHumidity:
+			return 'humidity'
 		return ""
 
 
@@ -133,4 +142,25 @@ class Zigbee(Device):
 			return self.getParam('state', "")
 		if self.zigbeeType == 'window':
 			return self.getParam('contact', "")
+		if self.zigbeeType == 'environment':
+			temp = self.getParam('temperature', "")
+			ts = "OK"
+			if temp > 22:
+				ts = "HIGH"
+			elif temp < 18:
+				ts = "LOW"
+			humi = self.getParam('humidity', "")
+			hs = "OK"
+			if humi > 60:
+				hs = "WET"
+			elif humi < 40:
+				hs = "DRY"
+			return ts + hs
+
 		return ""
+
+
+	def updateParamFromPayload(self, payload, param: str):
+		state = payload.get(param, None)
+		if state is not None:
+			self.updateParams(param, state)
