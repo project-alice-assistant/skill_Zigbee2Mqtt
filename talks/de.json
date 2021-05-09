@@ -1,1 +1,17 @@
-{}
+{
+	"GUI_env_reporting"          : {
+		"default": [
+			"Temperatur {} \n Luftfeuchtigkeit {}"
+		]
+	},
+	"GUI_window_reporting_open"  : {
+		"default": [
+			"Offen seit {}"
+		]
+	},
+	"GUI_window_reporting_closed": {
+		"default": [
+			"Geschlossen seit {}"
+		]
+	}
+}

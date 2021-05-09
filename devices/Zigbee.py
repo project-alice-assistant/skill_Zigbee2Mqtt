@@ -6,6 +6,7 @@ from core.dialog.model.DialogSession import DialogSession
 from core.util.model.TelemetryType import TelemetryType
 from core.webui.model.DeviceClickReactionAction import DeviceClickReactionAction
 from core.webui.model.OnDeviceClickReaction import OnDeviceClickReaction
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, Union
 
@@ -41,10 +42,19 @@ class Zigbee(Device):
 			).toDict()
 
 		if self.zigbeeType == 'switch':
+			# Toggle that switch
 			self.skillInstance.publish(topic=f'zigbee2mqtt/{self._deviceConfigs["displayName"]}/set', payload={'state': 'TOGGLE'})
 		elif self.zigbeeType == 'environment':
+			# Info Output of current temperature and humidity
+			temp = str(self.getParam("temperature", "unknown")) + " °C"
+			humidity = str(self.getParam("humidity", "unknown")) + "%"
 			return OnDeviceClickReaction(action=DeviceClickReactionAction.INFO_NOTIFICATION.value,
-			                             data={'body': f'Temperatur: {self.getParam("temperature", "unknown")} \n Luftfeuchte: {self.getParam("humidity", "unknown")}'})
+			                             data={'body': self.skillInstance.randomTalk('GUI_env_reporting', [temp, humidity], self.skillInstance.name)})
+		elif self.zigbeeType == 'window':
+			# Info Output of current state and time since this state was taken
+			lastChanged = self.getParam("lastChange", "unknown")
+			return OnDeviceClickReaction(action=DeviceClickReactionAction.INFO_NOTIFICATION.value,
+			                             data={'body': self.skillInstance.randomTalk('GUI_window_reporting_open' if self.getParam("contact") else 'GUI_window_reporting_closed', [lastChanged], self.skillInstance.name)})
 
 		return OnDeviceClickReaction(action=DeviceClickReactionAction.NONE.value).toDict()
 
@@ -83,7 +93,13 @@ class Zigbee(Device):
 		if self.zigbeeType == 'switch':
 			self.updateParamFromPayload(payload, 'state')
 		elif self.zigbeeType == 'window':
+			old = self.getParam('contact')
+			new = payload.get('contact', None)
 			self.updateParamFromPayload(payload, 'contact')
+
+			if old != new:
+				self.updateParams('lastChange', datetime.now().strftime("%d/%m/%Y, %H:%M:%S"))
+
 		elif self.zigbeeType == 'environment':
 			self.updateParamFromPayload(payload, 'temperature')
 			self.updateParamFromPayload(payload, 'humidity')
