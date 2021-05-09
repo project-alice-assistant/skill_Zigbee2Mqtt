@@ -54,7 +54,7 @@ class Zigbee(Device):
 			# Info Output of current state and time since this state was taken
 			lastChanged = self.getParam("lastChange", "unknown")
 			return OnDeviceClickReaction(action=DeviceClickReactionAction.INFO_NOTIFICATION.value,
-			                             data={'body': self.skillInstance.randomTalk('GUI_window_reporting_open' if self.getParam("contact") else 'GUI_window_reporting_closed', [lastChanged], self.skillInstance.name)})
+			                             data={'body': self.skillInstance.randomTalk('GUI_window_reporting_closed' if self.getParam("contact") else 'GUI_window_reporting_open', [lastChanged], self.skillInstance.name)})
 
 		return OnDeviceClickReaction(action=DeviceClickReactionAction.NONE.value).toDict()
 
