@@ -42,6 +42,9 @@ class Zigbee(Device):
 
 		if self.zigbeeType == 'switch':
 			self.skillInstance.publish(topic=f'zigbee2mqtt/{self._deviceConfigs["displayName"]}/set', payload={'state': 'TOGGLE'})
+		elif self.zigbeeType == 'environment':
+			return OnDeviceClickReaction(action=DeviceClickReactionAction.INFO_NOTIFICATION.value,
+			                             data={'body': f'Temperatur: {self.getParam("temperature", "unknown")} \n Luftfeuchte: {self.getParam("humidty", "unknown")}'})
 
 		return OnDeviceClickReaction(action=DeviceClickReactionAction.NONE.value).toDict()
 
