@@ -109,18 +109,26 @@ class Zigbee2Mqtt(AliceSkill):
 						defLocation = self.DeviceManager.getMainDevice().getLocation()
 						self.logInfo(f'Creating device for {devicePayload["friendly_name"]} in {defLocation.name} ')
 
-						self.DeviceManager.addNewDevice(locationId=defLocation.id,
-						                                skillName=self.name,
-						                                deviceType='Zigbee',
-						                                uid=str(self.DeviceManager.generateUuid3(skillName=self.name, unique=ieeeAddr)),
-						                                displayName=devicePayload['friendly_name'])
-						device = self.DeviceManager.getDevice(uid=self.DeviceManager.generateUuid3(skillName=self.name, unique=ieeeAddr))
+						device = self.DeviceManager.addNewDevice(locationId=defLocation.id,
+						                                         skillName=self.name,
+						                                         deviceType='Zigbee',
+						                                         uid=str(self.DeviceManager.generateUuid3(skillName=self.name, unique=ieeeAddr)),
+						                                         displayName=devicePayload['friendly_name'])
+						device.updateConfigs({'ieee': ieeeAddr})
+
 					else:
 						self.logWarning(f'Device {devicePayload["friendly_name"]} not existing!\n {devicePayload}')
 			# check for updated definition
 			if device:
 				if 'definition' in devicePayload and 'exposes' in devicePayload['definition']:
 					device.updateParams(key='exposes', value=devicePayload['definition']['exposes'])
+					device.updateType()
+				if not device.getConfig('ieee', None):
+					if 'ieeeAddr' in devicePayload:
+						ieeeAddr = devicePayload['ieeeAddr']
+					else:
+						ieeeAddr = devicePayload['ieee_address']
+					device.updateConfigs({'ieee': ieeeAddr})
 
 
 	def handleLogMessage(self, session: DialogSession):

@@ -8,6 +8,7 @@ from core.webui.model.DeviceClickReactionAction import DeviceClickReactionAction
 from core.webui.model.OnDeviceClickReaction import OnDeviceClickReaction
 from datetime import datetime
 from pathlib import Path
+from skills.Zigbee2Mqtt.ZigbeeType import ZigbeeType
 from typing import Dict, Union
 
 
@@ -15,6 +16,7 @@ class Zigbee(Device):
 
 	def __init__(self, data: Union[sqlite3.Row, Dict]):
 		super().__init__(data)
+		self.zigbeeType = ZigbeeType.generic
 
 
 	@classmethod
@@ -41,20 +43,31 @@ class Zigbee(Device):
 				data='notifications.info.pleasePlugDevice'
 			).toDict()
 
-		if self.zigbeeType == 'switch':
+		if self.zigbeeType.simplify() == ZigbeeType.switch:
 			# Toggle that switch
-			self.skillInstance.publish(topic=f'zigbee2mqtt/{self._deviceConfigs["displayName"]}/set', payload={'state': 'TOGGLE'})
-		elif self.zigbeeType == 'environment':
+			self.skillInstance.publish(topic=f'zigbee2mqtt/{self.getConfig("ieee")}/set', payload={'state': 'TOGGLE'})
+		elif self.zigbeeType.simplify() == ZigbeeType.environment:
 			# Info Output of current temperature and humidity
-			temp = str(self.getParam("temperature", "unknown")) + " °C"
+			temp = str(self.getParam("temperature", "unknown")) + "°C"
 			humidity = str(self.getParam("humidity", "unknown")) + "%"
 			return OnDeviceClickReaction(action=DeviceClickReactionAction.INFO_NOTIFICATION.value,
 			                             data={'body': self.skillInstance.randomTalk('GUI_env_reporting', [temp, humidity], self.skillInstance.name)})
-		elif self.zigbeeType == 'window':
+		elif self.zigbeeType.simplify() == ZigbeeType.window:
 			# Info Output of current state and time since this state was taken
 			lastChanged = self.getParam("lastChange", "unknown")
 			return OnDeviceClickReaction(action=DeviceClickReactionAction.INFO_NOTIFICATION.value,
 			                             data={'body': self.skillInstance.randomTalk('GUI_window_reporting_closed' if self.getParam("contact") else 'GUI_window_reporting_open', [lastChanged], self.skillInstance.name)})
+
+		elif self.zigbeeType.simplify() == ZigbeeType.climate:
+			# toggle auto off + set target temp + HOT
+			if self.getParam("system_mode") == 'auto':
+				self.skillInstance.publish(topic=f'zigbee2mqtt/{self.getConfig("ieee")}/set', payload={'system_mode': 'heat'})
+				self.skillInstance.publish(topic=f'zigbee2mqtt/{self.getConfig("ieee")}/set', payload={'current_heating_setpoint': '24'})  # todo device config value
+			else:
+				# toggle auto on == unset current temp
+				self.skillInstance.publish(topic=f'zigbee2mqtt/{self.getConfig("ieee")}/set', payload={'system_mode': 'auto'})
+			return OnDeviceClickReaction(action=DeviceClickReactionAction.INFO_NOTIFICATION.value,
+			                             data={'body': "CLIMATE" or self.skillInstance.randomTalk('GUI_climtate_set_temp', ["on"], self.skillInstance.name)})
 
 		return OnDeviceClickReaction(action=DeviceClickReactionAction.NONE.value).toDict()
 
@@ -66,7 +79,7 @@ class Zigbee(Device):
 		:return: the icon file path
 		"""
 		base = self._typeName
-		type = self.zigbeeType
+		type = self.zigbeeType.simplify().name
 		status = self.zigbeeStatus
 		return Path(f'{self.Commons.rootDir()}/skills/{self.skillName}/devices/img/{base}'
 		            f'{f"_{type}" if type else ""}'
@@ -90,9 +103,9 @@ class Zigbee(Device):
 
 
 	def onZigbeeMessage(self, payload):
-		if self.zigbeeType == 'switch':
+		if self.zigbeeType.simplify() == ZigbeeType.switch:
 			self.updateParamFromPayload(payload, 'state')
-		elif self.zigbeeType == 'window':
+		elif self.zigbeeType.simplify() == ZigbeeType.window:
 			old = self.getParam('contact')
 			new = payload.get('contact', None)
 			self.updateParamFromPayload(payload, 'contact')
@@ -100,9 +113,17 @@ class Zigbee(Device):
 			if old != new:
 				self.updateParams('lastChange', datetime.now().strftime("%d/%m/%Y, %H:%M:%S"))
 
-		elif self.zigbeeType == 'environment':
+		elif self.zigbeeType.simplify() == ZigbeeType.environment:
 			self.updateParamFromPayload(payload, 'temperature')
 			self.updateParamFromPayload(payload, 'humidity')
+
+		elif self.zigbeeType.simplify() == ZigbeeType.climate:
+			self.updateParamFromPayload(payload, 'local_temperature')
+			self.updateParamFromPayload(payload, 'current_heating_setpoint')
+			self.updateParamFromPayload(payload, 'local_temperature_calibration')
+			self.updateParamFromPayload(payload, 'running_state')
+			self.updateParamFromPayload(payload, 'away_mode')
+			self.updateParamFromPayload(payload, 'system_mode')
 
 		if True or self.getConfig('storeTelemetry'):
 			# exploded = [excl.strip() for excl in device.devSettings['excludedTelemetry'].split(',')]
@@ -133,35 +154,12 @@ class Zigbee(Device):
 
 
 	@property
-	def zigbeeType(self) -> str:
-		exposes = self.getParam('exposes')
-		if not exposes:
-			return ""
-		for exposure in exposes:
-			if exposure['type'] in ['light', 'switch', 'fan', 'cover', 'lock', 'climate']:
-				return exposure['type']
-			elif exposure['type'] == 'binary' and exposure['property'] == 'contact':
-				return "window"
-			elif exposure['type'] == 'numeric' and exposure['property'] == 'temperature':
-				hasTemp = True
-			elif exposure['type'] == 'numeric' and exposure['property'] == 'humidity':
-				hasHumidity = True
-		if hasTemp and hasHumidity:
-			return 'environment'
-		elif hasTemp:
-			return 'thermometer'
-		elif hasHumidity:
-			return 'humidity'
-		return ""
-
-
-	@property
 	def zigbeeStatus(self) -> str:
-		if self.zigbeeType == 'switch':
+		if self.zigbeeType.simplify() == ZigbeeType.switch:
 			return self.getParam('state', "")
-		if self.zigbeeType == 'window':
+		if self.zigbeeType.simplify() == ZigbeeType.window:
 			return self.getParam('contact', "")
-		if self.zigbeeType == 'environment':
+		if self.zigbeeType.simplify() == ZigbeeType.environment:
 			temp = self.getParam('temperature', "")
 			ts = "OK"
 			if temp > 22:
@@ -175,6 +173,18 @@ class Zigbee(Device):
 			elif humi < 40:
 				hs = "DRY"
 			return ts + hs
+		if self.zigbeeType.simplify() == ZigbeeType.climate:
+			bottom = ""
+			top = ""
+			if self.getParam('away_mode') == "ON":
+				bottom = "away"
+			else:
+				bottom = self.getParam('system_mode')
+			if float(self.getParam('local_temperature')) > float(self.getParam('current_heating_setpoint')):
+				top = "OFF"
+			else:
+				top = "ON"
+			return top + bottom
 
 		return ""
 
@@ -183,3 +193,15 @@ class Zigbee(Device):
 		state = payload.get(param, None)
 		if state is not None:
 			self.updateParams(param, state)
+
+
+	def updateType(self):
+		exposes = self.getParam('exposes')
+		for exposure in exposes:
+			if exposure['type'] in ['light', 'switch', 'fan', 'cover', 'lock', 'climate']:
+				self.zigbeeType = self.zigbeeType | ZigbeeType[exposure['type']]
+			else:
+				try:
+					self.zigbeeType = self.zigbeeType | ZigbeeType[exposure['property']]
+				except KeyError:
+					pass

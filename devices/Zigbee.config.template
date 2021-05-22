@@ -11,6 +11,13 @@
 			"dataType"    : "string",
 			"isSensitive" : false,
 			"description" : "Telemetry types that should not be stored (e.g. voltage if battery percentage is given as well)"
+		},
+		"ieee": {
+			"defaultValue": "",
+			"dataType"    : "string",
+			"isSensitive" : false,
+			"isReadOnly"  : true,
+			"description" : "The ieee adress of the device."
 		}
 	}
 }
