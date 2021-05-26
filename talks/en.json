@@ -13,5 +13,10 @@
 		"default": [
 			"Closed since {}"
 		]
+	},
+	"GUI_climtate_set_temp"      : {
+		"default": [
+			"Set temperature to {}"
+		]
 	}
 }

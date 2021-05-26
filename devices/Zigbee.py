@@ -63,11 +63,13 @@ class Zigbee(Device):
 			if self.getParam("system_mode") == 'auto':
 				self.skillInstance.publish(topic=f'zigbee2mqtt/{self.getConfig("ieee")}/set', payload={'system_mode': 'heat'})
 				self.skillInstance.publish(topic=f'zigbee2mqtt/{self.getConfig("ieee")}/set', payload={'current_heating_setpoint': '24'})  # todo device config value
+				return OnDeviceClickReaction(action=DeviceClickReactionAction.INFO_NOTIFICATION.value,
+				                             data={'body': self.skillInstance.randomTalk('GUI_climtate_set_temp', [24], self.skillInstance.name)})
 			else:
 				# toggle auto on == unset current temp
 				self.skillInstance.publish(topic=f'zigbee2mqtt/{self.getConfig("ieee")}/set', payload={'system_mode': 'auto'})
-			return OnDeviceClickReaction(action=DeviceClickReactionAction.INFO_NOTIFICATION.value,
-			                             data={'body': "CLIMATE" or self.skillInstance.randomTalk('GUI_climtate_set_temp', ["on"], self.skillInstance.name)})
+				return OnDeviceClickReaction(action=DeviceClickReactionAction.INFO_NOTIFICATION.value,
+				                             data={'body': self.skillInstance.randomTalk('GUI_climtate_set_temp', ["automatic mode"], self.skillInstance.name)})
 
 		return OnDeviceClickReaction(action=DeviceClickReactionAction.NONE.value).toDict()
 
