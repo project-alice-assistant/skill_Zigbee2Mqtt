@@ -70,6 +70,11 @@ class Zigbee(Device):
 				self.skillInstance.publish(topic=f'zigbee2mqtt/{self.getConfig("ieee")}/set', payload={'system_mode': 'auto'})
 				return OnDeviceClickReaction(action=DeviceClickReactionAction.INFO_NOTIFICATION.value,
 				                             data={'body': self.skillInstance.randomTalk('GUI_climtate_set_temp', ["automatic mode"], self.skillInstance.name)})
+		elif self.zigbeeType.simplify() == ZigbeeType.light:
+			# toggle light on/off
+			self.skillInstance.publish(topic=f'zigbee2mqtt/{self.getConfig("ieee")}/set', payload={'state': 'TOGGLE'})
+			return OnDeviceClickReaction(action=DeviceClickReactionAction.INFO_NOTIFICATION.value,
+			                             data={'body': self.skillInstance.randomTalk('GUI_light_toggle', [], self.skillInstance.name)})
 
 		return OnDeviceClickReaction(action=DeviceClickReactionAction.NONE.value).toDict()
 
@@ -105,7 +110,7 @@ class Zigbee(Device):
 
 
 	def onZigbeeMessage(self, payload):
-		if self.zigbeeType.simplify() == ZigbeeType.switch:
+		if self.zigbeeType.simplify() == ZigbeeType.switch or self.zigbeeType.simplify() == ZigbeeType.light:
 			self.updateParamFromPayload(payload, 'state')
 		elif self.zigbeeType.simplify() == ZigbeeType.window:
 			old = self.getParam('contact')
@@ -157,7 +162,7 @@ class Zigbee(Device):
 
 	@property
 	def zigbeeStatus(self) -> str:
-		if self.zigbeeType.simplify() == ZigbeeType.switch:
+		if self.zigbeeType.simplify() == ZigbeeType.switch or self.zigbeeType.simplify() == ZigbeeType.light:
 			return self.getParam('state', "")
 		if self.zigbeeType.simplify() == ZigbeeType.window:
 			return self.getParam('contact', "")

@@ -18,5 +18,10 @@
 		"default": [
 			"Temperatur auf {} gesetzt"
 		]
+	},
+	"GUI_light_toggle"           : {
+		"default": [
+			"Licht geschaltet."
+		]
 	}
 }
