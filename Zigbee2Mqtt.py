@@ -174,12 +174,12 @@ class Zigbee2Mqtt(AliceSkill):
 				self.blockNewDeviceJoining()
 		elif logType == 'ota_update':
 			meta = session.payload['meta']
-			self.WebUIManager.newNotification(
-				tipe=UINotificationType.INFO,
-				notification='deviceUpdateRunning',
-				key='deviceUpdate_{}'.format(meta['device']),
-				replaceBody=[skillName, meta['progress']]
-			)
+		# self.WebUIManager.newNotification(
+		# 	tipe=UINotificationType.INFO,
+		# 	notification='deviceUpdateRunning',
+		# 	key='deviceUpdate_{}'.format(meta['device']),
+		# 	replaceBody=[meta['progress']]
+		# )
 
 
 	def _removeDevice(self, name: str):
