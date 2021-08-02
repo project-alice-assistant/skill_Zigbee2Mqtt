@@ -121,7 +121,7 @@ class Zigbee2Mqtt(AliceSkill):
 			# check for updated definition
 			if device:
 				if 'definition' in devicePayload and 'exposes' in devicePayload['definition']:
-					device.updateParams(key='exposes', value=devicePayload['definition']['exposes'])
+					device.updateParam(key='exposes', value=devicePayload['definition']['exposes'])
 					device.updateType()
 				if not device.getConfig('ieee', None):
 					if 'ieeeAddr' in devicePayload:

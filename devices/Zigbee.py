@@ -118,7 +118,7 @@ class Zigbee(Device):
 			self.updateParamFromPayload(payload, 'contact')
 
 			if old != new:
-				self.updateParams('lastChange', datetime.now().strftime("%d/%m/%Y, %H:%M:%S"))
+				self.updateParam('lastChange', datetime.now().strftime("%d/%m/%Y, %H:%M:%S"))
 
 		elif self.zigbeeType.simplify() == ZigbeeType.environment:
 			self.updateParamFromPayload(payload, 'temperature')
@@ -199,7 +199,7 @@ class Zigbee(Device):
 	def updateParamFromPayload(self, payload, param: str):
 		state = payload.get(param, None)
 		if state is not None:
-			self.updateParams(param, state)
+			self.updateParam(param, state)
 
 
 	def updateType(self):
