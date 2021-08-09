@@ -109,6 +109,7 @@ venv.bak/
 .vscode/
 
 config.json
+*.ext.json
 
 scenarioNodes/node_modules/
 package-lock.json
