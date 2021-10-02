@@ -9,7 +9,7 @@ from core.webui.model.OnDeviceClickReaction import OnDeviceClickReaction
 from datetime import datetime
 from pathlib import Path
 from skills.Zigbee2Mqtt.ZigbeeType import ZigbeeType
-from typing import Dict, Union
+from typing import Dict, Optional, Union
 
 
 class Zigbee(Device):
@@ -51,12 +51,12 @@ class Zigbee(Device):
 			temp = str(self.getParam("temperature", "unknown")) + "°C"
 			humidity = str(self.getParam("humidity", "unknown")) + "%"
 			return OnDeviceClickReaction(action=DeviceClickReactionAction.INFO_NOTIFICATION.value,
-			                             data={'body': self.skillInstance.randomTalk('GUI_env_reporting', [temp, humidity], self.skillInstance.name)})
+			                             data={'body': self.skillInstance.randomTalk('GUI_env_reporting', [temp, humidity], self.skillInstance.name)}).toDict()
 		elif self.zigbeeType.simplify() == ZigbeeType.window:
 			# Info Output of current state and time since this state was taken
 			lastChanged = self.getParam("lastChange", "unknown")
 			return OnDeviceClickReaction(action=DeviceClickReactionAction.INFO_NOTIFICATION.value,
-			                             data={'body': self.skillInstance.randomTalk('GUI_window_reporting_closed' if self.getParam("contact") else 'GUI_window_reporting_open', [lastChanged], self.skillInstance.name)})
+			                             data={'body': self.skillInstance.randomTalk('GUI_window_reporting_closed' if self.getParam("contact") else 'GUI_window_reporting_open', [lastChanged], self.skillInstance.name)}).toDict()
 
 		elif self.zigbeeType.simplify() == ZigbeeType.climate:
 			# toggle auto off + set target temp + HOT
@@ -64,49 +64,45 @@ class Zigbee(Device):
 				self.skillInstance.publish(topic=f'zigbee2mqtt/{self.getConfig("ieee")}/set', payload={'system_mode': 'heat'})
 				self.skillInstance.publish(topic=f'zigbee2mqtt/{self.getConfig("ieee")}/set', payload={'current_heating_setpoint': '24'})  # todo device config value
 				return OnDeviceClickReaction(action=DeviceClickReactionAction.INFO_NOTIFICATION.value,
-				                             data={'body': self.skillInstance.randomTalk('GUI_climtate_set_temp', [24], self.skillInstance.name)})
+				                             data={'body': self.skillInstance.randomTalk('GUI_climtate_set_temp', [24], self.skillInstance.name)}).toDict()
 			else:
 				# toggle auto on == unset current temp
 				self.skillInstance.publish(topic=f'zigbee2mqtt/{self.getConfig("ieee")}/set', payload={'system_mode': 'auto'})
 				return OnDeviceClickReaction(action=DeviceClickReactionAction.INFO_NOTIFICATION.value,
-				                             data={'body': self.skillInstance.randomTalk('GUI_climtate_set_temp', ["automatic mode"], self.skillInstance.name)})
+				                             data={'body': self.skillInstance.randomTalk('GUI_climtate_set_temp', ["automatic mode"], self.skillInstance.name)}).toDict()
 		elif self.zigbeeType.simplify() == ZigbeeType.light:
 			# toggle light on/off
 			self.skillInstance.publish(topic=f'zigbee2mqtt/{self.getConfig("ieee")}/set', payload={'state': 'TOGGLE'})
 			return OnDeviceClickReaction(action=DeviceClickReactionAction.INFO_NOTIFICATION.value,
-			                             data={'body': self.skillInstance.randomTalk('GUI_light_toggle', [], self.skillInstance.name)})
+			                             data={'body': self.skillInstance.randomTalk('GUI_light_toggle', [], self.skillInstance.name)}).toDict()
 
 		return OnDeviceClickReaction(action=DeviceClickReactionAction.NONE.value).toDict()
 
 
-	def getDeviceIcon(self) -> Path:
+	def getDeviceIcon(self, path: Optional[Path] = None) -> Path:
 		"""
 		Return the path of the icon representing the current status of the device
 		e.g. a light bulb can be on or off and display its status
 		:return: the icon file path
 		"""
 		base = self._typeName
-		type = self.zigbeeType.simplify().name
+		typ = self.zigbeeType.simplify().name
 		status = self.zigbeeStatus
-		return Path(f'{self.Commons.rootDir()}/skills/{self.skillName}/devices/img/{base}'
-		            f'{f"_{type}" if type else ""}'
+		icon = Path(f'{self.Commons.rootDir()}/skills/{self.skillName}/devices/img/{base}'
+		            f'{f"_{typ}" if type else ""}'
 		            f'{f"_{status}" if status else ""}.png')
+		return super().getDeviceIcon(icon)
 
 
-	def discover(self, replyOnSiteId: str = "", session: DialogSession = None) -> bool:
+	def discover(self, replyOnSiteId: str = '', session: DialogSession = None) -> bool:
 		self.skillInstance.allowNewDeviceJoining(limitToOne=True, device=self)
-
 
 		def later():
 			self.skillInstance.blockNewDeviceJoining()
 			self.skillInstance.publish(topic=self.skillInstance.TOPIC_QUERY_DEVICE_LIST)
 
-
 		self.ThreadManager.doLater(interval=60, func=later)
 		return True
-
-	def toggle(self, device: Device):
-		pass
 
 
 	def onZigbeeMessage(self, payload):
