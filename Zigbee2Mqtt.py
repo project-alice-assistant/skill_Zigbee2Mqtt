@@ -120,7 +120,7 @@ class Zigbee2Mqtt(AliceSkill):
 						self.logWarning(f'Device {devicePayload["friendly_name"]} not existing!\n {devicePayload}')
 			# check for updated definition
 			if device:
-				if 'definition' in devicePayload and 'exposes' in devicePayload['definition']:
+				if 'definition' in devicePayload and devicePayload['definition'] and 'exposes' in devicePayload['definition']:
 					device.updateParam(key='exposes', value=devicePayload['definition']['exposes'])
 					device.updateType()
 				if not device.getConfig('ieee', None):
@@ -167,9 +167,12 @@ class Zigbee2Mqtt(AliceSkill):
 				meta = session.payload['message']['meta']
 			if 'meta' in session.payload:
 				meta = session.payload['meta']
-			device = self.DeviceManager.getDeviceByName(name=session.payload['message']['meta']['friendly_name'])
+			device = self.DeviceManager.getDevice(uid=meta['friendly_name'])
+			if not device:
+				self.logInfo(f'could not find the device with uid {meta["friendly_name"]}')
+			else:
+				self.broadcast(method=constants.EVENT_DEVICE_ADDED, exceptions=[self.name], propagateToSkills=True, kwargs=[device, device.uid])
 
-			self.broadcast(method=constants.EVENT_DEVICE_ADDED, exceptions=[self.name], propagateToSkills=True, kwargs=[device, device.uid])
 			if self._limitToOne:
 				self.blockNewDeviceJoining()
 		elif logType == 'ota_update':

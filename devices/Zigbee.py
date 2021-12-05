@@ -65,6 +65,10 @@ class Zigbee(Device):
 				self.skillInstance.publish(topic=f'zigbee2mqtt/{self.getConfig("ieee")}/set', payload={'current_heating_setpoint': '24'})  # todo device config value
 				return OnDeviceClickReaction(action=DeviceClickReactionAction.INFO_NOTIFICATION.value,
 				                             data={'body': self.skillInstance.randomTalk('GUI_climtate_set_temp', [24], self.skillInstance.name)}).toDict()
+			if self.getParam("system_mode") == 'heat':
+				self.skillInstance.publish(topic=f'zigbee2mqtt/{self.getConfig("ieee")}/set', payload={'system_mode': 'off'})
+				return OnDeviceClickReaction(action=DeviceClickReactionAction.INFO_NOTIFICATION.value,
+				                             data={'body': self.skillInstance.randomTalk('GUI_climtate_set_temp', ["off"], self.skillInstance.name)}).toDict()
 			else:
 				# toggle auto on == unset current temp
 				self.skillInstance.publish(topic=f'zigbee2mqtt/{self.getConfig("ieee")}/set', payload={'system_mode': 'auto'})
@@ -163,13 +167,13 @@ class Zigbee(Device):
 		if self.zigbeeType.simplify() == ZigbeeType.window:
 			return self.getParam('contact', "")
 		if self.zigbeeType.simplify() == ZigbeeType.environment:
-			temp = self.getParam('temperature', "")
+			temp = int(self.getParam('temperature', ""))
 			ts = "OK"
 			if temp > 22:
 				ts = "HIGH"
 			elif temp < 18:
 				ts = "LOW"
-			humi = self.getParam('humidity', "")
+			humi = int(self.getParam('humidity', ""))
 			hs = "OK"
 			if humi > 60:
 				hs = "WET"
