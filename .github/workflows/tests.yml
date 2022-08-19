@@ -30,6 +30,8 @@ jobs:
         uses: jpetrucciani/mypy-check@master
         with:
           path: '.'
+          requirements_file: 'mypy_requirements.txt'
+          python_version: '3.7'
       - name: Sonarcloud scan
         uses: SonarSource/sonarcloud-github-action@master
         env:
